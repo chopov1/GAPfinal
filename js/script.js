@@ -16,6 +16,8 @@ import * as dat from 'dat.gui'
 import { MeshStandardMaterial } from "three";
 import windowsBkg from '../img/280762.jpg'
 import { Vec3 } from "cannon-es";
+import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js'
+import gsap from 'gsap';
 
 //#region setup
 
@@ -63,19 +65,19 @@ wall1.position.set(0, 7, 10);
 floorObj.add(wall1);
 
 const wall2Geo = new THREE.BoxGeometry(20, 6, 2);
-const wall2Mat = new MeshStandardMaterial({color: 0xeeeee});
+const wall2Mat = new MeshStandardMaterial({color: 0x111eee});
 const wall2 = new THREE.Mesh(wall2Geo, wall2Mat);
 wall2.position.set(0, 7, -10);
 floorObj.add(wall2);
 
 const wall3Geo = new THREE.BoxGeometry(2, 6, 20);
-const wall3Mat = new MeshStandardMaterial({color: 0xeeeee});
+const wall3Mat = new MeshStandardMaterial({color: 0xeebbbb});
 const wall3 = new THREE.Mesh(wall3Geo, wall3Mat);
 wall3.position.set(10, 7, 0);
 floorObj.add(wall3);
 
 const wall4Geo = new THREE.BoxGeometry(2, 6, 20);
-const wall4Mat = new MeshStandardMaterial({color: 0xeeeee});
+const wall4Mat = new MeshStandardMaterial({color: 0xeeefff});
 const wall4 = new THREE.Mesh(wall4Geo, wall4Mat);
 wall4.position.set(-10, 7, 0);
 floorObj.add(wall4);
@@ -85,6 +87,35 @@ const cargoGeo1 = new THREE.BoxGeometry(2,2,2);
 const cargoMat1 = new THREE.MeshStandardMaterial({color: 0xffbbee});
 const cargo1 = new THREE.Mesh(cargoGeo1, cargoMat1);
 scene.add(cargo1);
+
+//#region gltf
+const dinoURL = new URL('../assets/stegosaurs_SStenops.glb', import.meta.url);
+const boyURL = new URL('../assets/Cartoon_boy.glb', import.meta.url);
+
+const dinoObj = new Object3D();
+
+const assetLoader = new GLTFLoader();
+assetLoader.load(dinoURL.href,function(gltf){
+    const dinomodel = gltf.scene;
+    dinoObj.add(dinomodel);
+    scene.add(dinoObj);
+    //dinomodel.position.set(0,12,0);
+},
+undefined,
+function(error){
+    console.error(error);
+}
+)
+
+const boyPos = new THREE.Vector3(20,0,-20);
+
+assetLoader.load(boyURL.href,function(gltf){
+    const boymodel = gltf.scene;
+    scene.add(boymodel);
+    boymodel.position.set(20,0,-20);
+})
+
+//#endregion
 
 //#endregion
 
@@ -151,6 +182,14 @@ const cargo1Body = new CANNON.Body({
 })
 world.addBody(cargo1Body);
 
+const dinoBody = new CANNON.Body({
+    shape: new CANNON.Box(new CANNON.Vec3(1,1,1)),
+    mass: .8,
+    material: objPhyMat,
+    position: new Vec3(0,12,0)
+})
+world.addBody(dinoBody);
+
 //#endregion
 
 //#region UI
@@ -160,18 +199,25 @@ const gui = new dat.GUI();
 const guiOptions = {
 WagonColor: '#0000FF', 
 WagonHeight: 0,
+Showboy: false,
 };
 
 gui.addColor(guiOptions, 'WagonColor').onChange(function(e){
     floor.material.color.set(e)
 });
 
+const tl = gsap.timeline();
+gui.add(guiOptions, "Showboy").onChange(function(e){
+    tl.to(camera.position, {z:-18, duration:1, onUpdate: function(){camera.lookAt(boyPos)}})
+    .to(camera.position, {y:-5, z:-16, x:16, duration: 4, onUpdate: function(){camera.lookAt(boyPos); }})
+    .to(camera.position, {y: 10, duration: 3, onUpdate: function(){camera.lookAt(boyPos)}});
+})
+
 gui.add(guiOptions, "WagonHeight", -1, 8);
 
 //#endregion
 
 var timestep = 1/60;
-const clock = new THREE.Clock();
 
 function animate(){
 
@@ -181,6 +227,9 @@ function animate(){
 
     cargo1.position.copy(cargo1Body.position);
     cargo1.quaternion.copy(cargo1Body.quaternion);
+
+    dinoObj.position.copy(dinoBody.position);
+    dinoObj.quaternion.copy(dinoBody.quaternion);
 
     //#region updateWagonParts
     floorObj.position.copy(floorBody.position);
