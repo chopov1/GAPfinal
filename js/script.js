@@ -10,6 +10,7 @@
 
 import * as THREE from "three";
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
+import {Object3D} from "three";
 import * as CANNON from 'cannon-es';
 import * as dat from 'dat.gui'
 import { MeshStandardMaterial } from "three";
@@ -47,13 +48,41 @@ scene.background = textureLoader.load(windowsBkg);
 
 //#region objects
 
+//#region wagonParts
+const floorObj = new Object3D();
 const floorGeo = new THREE.BoxGeometry(20, 10, 20);
 const floorMat = new MeshStandardMaterial({color: 0x00ffff});
 const floor = new THREE.Mesh(floorGeo, floorMat);
-scene.add(floor);
+floorObj.add(floor);
+scene.add(floorObj);
+
+const wall1Geo = new THREE.BoxGeometry(20, 6, 2);
+const wall1Mat = new MeshStandardMaterial({color: 0xeeeee});
+const wall1 = new THREE.Mesh(wall1Geo, wall1Mat);
+wall1.position.set(0, 7, 10);
+floorObj.add(wall1);
+
+const wall2Geo = new THREE.BoxGeometry(20, 6, 2);
+const wall2Mat = new MeshStandardMaterial({color: 0xeeeee});
+const wall2 = new THREE.Mesh(wall2Geo, wall2Mat);
+wall2.position.set(0, 7, -10);
+floorObj.add(wall2);
+
+const wall3Geo = new THREE.BoxGeometry(2, 6, 20);
+const wall3Mat = new MeshStandardMaterial({color: 0xeeeee});
+const wall3 = new THREE.Mesh(wall3Geo, wall3Mat);
+wall3.position.set(10, 7, 0);
+floorObj.add(wall3);
+
+const wall4Geo = new THREE.BoxGeometry(2, 6, 20);
+const wall4Mat = new MeshStandardMaterial({color: 0xeeeee});
+const wall4 = new THREE.Mesh(wall4Geo, wall4Mat);
+wall4.position.set(-10, 7, 0);
+floorObj.add(wall4);
+//#endregion
 
 const cargoGeo1 = new THREE.BoxGeometry(2,2,2);
-const cargoMat1 = new THREE.MeshStandardMaterial({color: 0x00ffee});
+const cargoMat1 = new THREE.MeshStandardMaterial({color: 0xffbbee});
 const cargo1 = new THREE.Mesh(cargoGeo1, cargoMat1);
 scene.add(cargo1);
 
@@ -61,6 +90,7 @@ scene.add(cargo1);
 
 //#region cannon
 
+//#region cannon world setup
 const world = new CANNON.World({
     gravity: new CANNON.Vec3(0,-10,0)
 });
@@ -69,7 +99,9 @@ const floorPhyMat = new CANNON.Material();
 const objPhyMat = new CANNON.Material();
 const floorObjContactMat = new CANNON.ContactMaterial(floorPhyMat,objPhyMat, {friction: .1} );
 world.addContactMaterial(floorObjContactMat);
+//#endregion
 
+//#region wagonPartBodies
 const floorBody = new CANNON.Body({
     shape: new CANNON.Box(new CANNON.Vec3(10,5,10)),
     type: CANNON.Body.STATIC,
@@ -78,13 +110,45 @@ const floorBody = new CANNON.Body({
 });
 world.addBody(floorBody);
 
+const wall1Body = new CANNON.Body({
+    shape: new CANNON.Box(new CANNON.Vec3(10,3,1)),
+    type: CANNON.Body.STATIC,
+    material: floorPhyMat,
+    position: new Vec3(0,0,0)
+});
+world.addBody(wall1Body);
+
+const wall2Body = new CANNON.Body({
+    shape: new CANNON.Box(new CANNON.Vec3(10,3,1)),
+    type: CANNON.Body.STATIC,
+    material: floorPhyMat,
+    position: new Vec3(0,0,0)
+});
+world.addBody(wall2Body);
+
+const wall3Body = new CANNON.Body({
+    shape: new CANNON.Box(new CANNON.Vec3(1,3,10)),
+    type: CANNON.Body.STATIC,
+    material: floorPhyMat,
+    position: new Vec3(0,0,0)
+});
+world.addBody(wall3Body);
+
+const wall4Body = new CANNON.Body({
+    shape: new CANNON.Box(new CANNON.Vec3(1,3,10)),
+    type: CANNON.Body.STATIC,
+    material: floorPhyMat,
+    position: new Vec3(0,0,0)
+});
+world.addBody(wall4Body);
+//#endregion
+
 const cargo1Body = new CANNON.Body({
     shape: new CANNON.Box(new CANNON.Vec3(1,1,1)),
     mass: 0.5,
     material: objPhyMat,
-    position: new Vec3(0,10,0)
+    position: new Vec3(0, 10, 0)
 })
-
 world.addBody(cargo1Body);
 
 //#endregion
@@ -118,8 +182,18 @@ function animate(){
     cargo1.position.copy(cargo1Body.position);
     cargo1.quaternion.copy(cargo1Body.quaternion);
 
-    floor.position.copy(floorBody.position);
-    floor.quaternion.copy(floorBody.quaternion);
+    //#region updateWagonParts
+    floorObj.position.copy(floorBody.position);
+    floorObj.quaternion.copy(floorBody.quaternion);
+    wall1Body.position.copy(wall1.position);
+    wall1Body.quaternion.copy(wall1.quaternion);
+    wall2Body.position.copy(wall2.position);
+    wall2Body.quaternion.copy(wall2.quaternion);
+    wall3Body.position.copy(wall3.position);
+    wall3Body.quaternion.copy(wall3.quaternion);
+    wall4Body.position.copy(wall4.position);
+    wall4Body.quaternion.copy(wall4.quaternion);
+    //#endregion
 
     renderer.render(scene, camera);
 }
